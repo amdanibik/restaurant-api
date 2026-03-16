@@ -5,6 +5,7 @@ services:
   mysql:
     image: mysql:8
     container_name: restaurant_mysql
+    command: --mysql-native-password=ON
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: root

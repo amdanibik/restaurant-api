@@ -6,7 +6,15 @@ services:
       context: ./api
     container_name: restaurant_api
     working_dir: /app
-    command: sh -c "bundle exec rails db:migrate && bundle exec rails s -b 0.0.0.0 -p 3000"
+    command: >-
+      sh -c "
+      until bundle exec rails runner 'ActiveRecord::Base.establish_connection; ActiveRecord::Base.connection.execute(\"SELECT 1\")' >/dev/null 2>&1; do
+        echo 'Waiting for MySQL...';
+        sleep 2;
+      done;
+      bundle exec rails db:migrate &&
+      bundle exec rails s -b 0.0.0.0 -p 3000
+      "
     volumes:
       - ./api:/app
     ports:
@@ -39,6 +47,7 @@ services:
       - "3307:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
       interval: 10s

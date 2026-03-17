@@ -1,139 +1,131 @@
 # Restaurant API
 
-Panduan cepat untuk menjalankan project ini secara lokal dengan Docker, melakukan verifikasi API, dan menjalankan test.
+Panduan ini ditujukan untuk siapa pun yang baru clone atau download repository ini, lalu ingin langsung menjalankan aplikasi menggunakan Docker.
 
-## Ringkasannya
+## 1. Cara Mendapatkan Kode
 
-Project ini berisi REST API Ruby on Rails untuk mengelola restoran dan menu item.
-
-- API Rails: `http://localhost:3000`
-- MySQL: `localhost:3307`
-- Redis: `localhost:6380`
-- Auth header wajib: `X-API-Key: development-api-key`
-
-## Prasyarat
-
-Pastikan sudah terpasang:
-
-- Docker
-- Docker Compose plugin (`docker compose`)
-
-Validasi instalasi:
-
-```bash
-docker --version
-docker compose version
-```
-
-## Quick Start (5 Menit)
-
-1. Clone repository.
+### Opsi A: Clone dengan Git
 
 ```bash
 git clone https://github.com/amdanibik/restaurant-api.git
 cd restaurant-api
 ```
 
-2. Jalankan semua service.
+### Opsi B: Download ZIP dari GitHub
+
+1. Download ZIP repository.
+2. Extract ZIP.
+3. Buka terminal di folder hasil extract (folder yang berisi `docker-compose.yml`).
+
+## 2. Prasyarat
+
+Pastikan sudah terpasang:
+
+- Docker
+- Docker Compose (plugin `docker compose`)
+
+Cek versi:
+
+```bash
+docker --version
+docker compose version
+```
+
+## 3. Menjalankan Aplikasi dengan Docker
+
+Jalankan dari folder root repository:
 
 ```bash
 docker compose up --build -d
 ```
 
-3. Isi seed data.
+Service yang berjalan:
 
-```bash
-docker compose exec -T api bundle exec rails db:seed
-```
+- API Rails: http://localhost:3000
+- MySQL: localhost:3307
+- Redis: localhost:6380
 
-4. Cek status container.
+Verifikasi status container:
 
 ```bash
 docker compose ps
 ```
 
-MySQL seharusnya berstatus `healthy`, service lain berstatus `Up`.
+Semua service seharusnya `Up`, dan MySQL berstatus `healthy`.
 
-5. Coba endpoint pertama.
+## 4. Inisialisasi dan Cek Seed Data
 
-```bash
-curl -H "X-API-Key: development-api-key" "http://localhost:3000/restaurants?per_page=10"
-```
-
-## Perintah Harian
-
-Menyalakan service:
+Jalankan seed:
 
 ```bash
-docker compose up -d
+docker compose exec -T api bundle exec rails db:seed
 ```
 
-Melihat log API:
+Verifikasi jumlah data:
 
 ```bash
-docker compose logs -f api
+docker compose exec -T api bundle exec rails runner 'puts "Restaurant count: #{Restaurant.count}"; Restaurant.order(:id).each { |r| puts "- #{r.name}: #{r.menu_items.count} menu items" }'
 ```
 
-Menjalankan command Rails di container:
+Target seed minimum:
 
-```bash
-docker compose exec -T api bundle exec rails <command>
-```
+- 2+ restoran
+- 5+ menu item per restoran
 
-Menjalankan test RSpec (environment test):
+## 5. Akses API
 
-```bash
-docker compose exec -T -e RAILS_ENV=test api bundle exec rspec
-```
-
-Mematikan service:
-
-```bash
-docker compose down
-```
-
-Reset penuh (hapus volume database):
-
-```bash
-docker compose down -v --remove-orphans
-```
-
-## Verifikasi Data Seed
-
-Lihat jumlah restoran dan menu item per restoran:
-
-```bash
-docker compose exec -T api bundle exec rails runner 'puts "Restaurant count: #{Restaurant.count}"; Restaurant.order(:id).each { |r| puts "- #{r.id}. #{r.name}: #{r.menu_items.count} menu items" }'
-```
-
-Catatan: ID restoran dapat berubah setelah reset/seed ulang karena auto increment.
-
-## Akses API
-
-Semua endpoint mewajibkan header:
+Semua endpoint membutuhkan header:
 
 ```text
 X-API-Key: development-api-key
 ```
 
-Contoh list menu item berdasarkan restoran:
+Contoh request list restoran:
 
 ```bash
-curl -H "X-API-Key: development-api-key" "http://localhost:3000/restaurants/1/menu_items?per_page=10"
+curl -H "X-API-Key: development-api-key" "http://localhost:3000/restaurants?per_page=10"
 ```
 
-Jika ID restoran `1` tidak ada, ambil ID valid terlebih dahulu dari endpoint `/restaurants`.
+Contoh request list menu item by restaurant id:
 
-## Troubleshooting
+```bash
+curl -H "X-API-Key: development-api-key" "http://localhost:3000/restaurants/33/menu_items?per_page=10"
+```
 
-API tidak bisa diakses:
+Catatan: ID restoran bisa berubah setelah beberapa kali seed (auto increment), jadi tidak selalu mulai dari `1`.
+
+## 6. Menjalankan Test di Docker
+
+Gunakan environment `test` saat menjalankan RSpec di container:
+
+```bash
+docker compose exec -T -e RAILS_ENV=test api bundle exec rspec
+```
+
+## 7. Stop dan Reset
+
+Stop container:
+
+```bash
+docker compose down
+```
+
+Stop + hapus volume database (reset data):
+
+```bash
+docker compose down -v --remove-orphans
+```
+
+## 8. Troubleshooting
+
+### API tidak bisa diakses di port 3000
 
 ```bash
 docker compose ps
 docker compose logs --tail=200 api
 ```
 
-MySQL gagal start atau `unhealthy`:
+### MySQL unhealthy atau gagal start
 
 ```bash
 docker compose logs --tail=200 mysql
@@ -141,12 +133,14 @@ docker compose down -v --remove-orphans
 docker compose up --build -d
 ```
 
-Menu by restaurant mengembalikan 404:
+### Seed berhasil tapi endpoint menu by id mengembalikan 404
+
+Biasanya karena ID restoran yang dipakai bukan ID aktual. Cek ID terbaru:
 
 ```bash
 docker compose exec -T api bundle exec rails runner 'Restaurant.order(:id).each { |r| puts "#{r.id} - #{r.name}" }'
 ```
 
-## Dokumentasi Lanjutan
+## 9. Dokumentasi Lanjutan
 
-Dokumentasi endpoint lengkap, behavior API, dan design decisions ada di [api/README.md](api/README.md).
+Detail API, endpoint, dan design decisions ada di [api/README.md](api/README.md).

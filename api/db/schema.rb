@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2026_03_17_103000) do
+ActiveRecord::Schema[7.0].define(version: 2026_03_17_113000) do
   create_table "menu_items", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "restaurant_id", null: false
     t.string "name", null: false
@@ -20,6 +20,8 @@ ActiveRecord::Schema[7.0].define(version: 2026_03_17_103000) do
     t.boolean "is_available", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["restaurant_id", "category"], name: "index_menu_items_on_restaurant_id_and_category"
+    t.index ["restaurant_id", "name"], name: "index_menu_items_on_restaurant_id_and_name"
     t.index ["restaurant_id"], name: "index_menu_items_on_restaurant_id"
   end
 
@@ -30,6 +32,7 @@ ActiveRecord::Schema[7.0].define(version: 2026_03_17_103000) do
     t.string "opening_hours"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_restaurants_on_name"
   end
 
   add_foreign_key "menu_items", "restaurants"

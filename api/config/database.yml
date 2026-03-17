@@ -1,16 +1,20 @@
 default: &default
   adapter: mysql2
   encoding: utf8mb4
-  pool: 5
-  username: restaurant
-  password: password
-  host: 127.0.0.1
-  port: 3307
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS", 5) %>
+  username: <%= ENV.fetch("DB_USERNAME", "restaurant") %>
+  password: <%= ENV.fetch("DB_PASSWORD", "password") %>
+  host: <%= ENV.fetch("DB_HOST", "127.0.0.1") %>
+  port: <%= ENV.fetch("DB_PORT", 3307) %>
 
 development:
   <<: *default
-  database: restaurant_development
+  database: <%= ENV.fetch("DB_NAME", "restaurant_development") %>
 
 test:
   <<: *default
-  database: restaurant_test
+  database: <%= ENV.fetch("DB_TEST_NAME", "restaurant_test") %>
+
+production:
+  <<: *default
+  url: <%= ENV["DATABASE_URL"] %>

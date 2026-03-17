@@ -13,10 +13,11 @@ class MenuItemsController < ApplicationController
   end
 
   def index
-    menu_items = @restaurant.menu_items
+    menu_items = @restaurant.menu_items.order(:id)
     menu_items = menu_items.where(category: params[:category]) if params[:category].present?
+    menu_items = menu_items.where("name LIKE ?", "%#{MenuItem.sanitize_sql_like(params[:name])}%") if params[:name].present?
 
-    render json: menu_items
+    render json: paginated_payload(menu_items)
   end
 
   def update

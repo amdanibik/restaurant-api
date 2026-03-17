@@ -1,6 +1,7 @@
 require "rails_helper"
 
 RSpec.describe "MenuItems API", type: :request do
+  let(:headers) { { "X-API-Key" => ENV.fetch("API_KEY", "development-api-key") } }
   let(:restaurant) { Restaurant.find_by!(name: "Bangkok Street Kitchen") }
 
   describe "POST /restaurants/:restaurant_id/menu_items" do
@@ -14,7 +15,7 @@ RSpec.describe "MenuItems API", type: :request do
             category: "main",
             is_available: true
           }
-        }
+        }, headers: headers
       end.to change(MenuItem, :count).by(1)
 
       expect(response).to have_http_status(:created)
@@ -25,7 +26,7 @@ RSpec.describe "MenuItems API", type: :request do
       expect do
         post "/restaurants/#{restaurant.id}/menu_items", params: {
           menu_item: { name: "", price: nil }
-        }
+        }, headers: headers
       end.not_to change(MenuItem, :count)
 
       expect(response).to have_http_status(:unprocessable_entity)
@@ -34,7 +35,7 @@ RSpec.describe "MenuItems API", type: :request do
     end
 
     it "returns 400 when menu item payload is missing" do
-      post "/restaurants/#{restaurant.id}/menu_items", params: { name: "Boat Noodles" }
+      post "/restaurants/#{restaurant.id}/menu_items", params: { name: "Boat Noodles" }, headers: headers
 
       expect(response).to have_http_status(:bad_request)
       expect(JSON.parse(response.body)["error"]).to eq("Bad request")
@@ -43,7 +44,7 @@ RSpec.describe "MenuItems API", type: :request do
     it "returns 404 for unknown restaurant" do
       post "/restaurants/999999/menu_items", params: {
         menu_item: { name: "Boat Noodles", price: 175 }
-      }
+      }, headers: headers
 
       expect(response).to have_http_status(:not_found)
       expect(JSON.parse(response.body)["error"]).to eq("Resource not found")
@@ -52,26 +53,50 @@ RSpec.describe "MenuItems API", type: :request do
 
   describe "GET /restaurants/:restaurant_id/menu_items" do
     it "lists menu items for restaurant" do
-      get "/restaurants/#{restaurant.id}/menu_items"
+      get "/restaurants/#{restaurant.id}/menu_items", headers: headers
 
-      names = JSON.parse(response.body).map { |item| item["name"] }
+      body = JSON.parse(response.body)
+      names = body["data"].map { |item| item["name"] }
 
       expect(response).to have_http_status(:ok)
       expect(names).to include("Pad Thai", "Thai Iced Tea")
+      expect(body["pagination"]["current_page"]).to eq(1)
     end
 
     it "filters menu items by category" do
-      get "/restaurants/#{restaurant.id}/menu_items", params: { category: "drink" }
+      get "/restaurants/#{restaurant.id}/menu_items", params: { category: "drink" }, headers: headers
 
-      body = JSON.parse(response.body)
+      body = JSON.parse(response.body)["data"]
       expect(response).to have_http_status(:ok)
       expect(body).not_to be_empty
       expect(body.map { |item| item["category"] }.uniq).to eq(["drink"])
       expect(body.map { |item| item["name"] }).to include("Thai Iced Tea")
     end
 
+    it "filters menu items by name" do
+      get "/restaurants/#{restaurant.id}/menu_items", params: { name: "tea" }, headers: headers
+
+      body = JSON.parse(response.body)["data"]
+      expect(response).to have_http_status(:ok)
+      expect(body.map { |item| item["name"] }).to include("Thai Iced Tea")
+      expect(body.map { |item| item["name"] }).not_to include("Pad Thai")
+    end
+
+    it "supports pagination parameters" do
+      get "/restaurants/#{restaurant.id}/menu_items", params: { page: 2, per_page: 3 }, headers: headers
+
+      body = JSON.parse(response.body)
+      expect(response).to have_http_status(:ok)
+      expect(body["data"].size).to eq(3)
+      expect(body["pagination"]).to include(
+        "current_page" => 2,
+        "per_page" => 3,
+        "total_count" => 8
+      )
+    end
+
     it "returns 404 for unknown restaurant" do
-      get "/restaurants/999999/menu_items"
+      get "/restaurants/999999/menu_items", headers: headers
 
       expect(response).to have_http_status(:not_found)
       expect(JSON.parse(response.body)["error"]).to eq("Resource not found")
@@ -89,7 +114,7 @@ RSpec.describe "MenuItems API", type: :request do
           price: 195,
           is_available: false
         }
-      }
+      }, headers: headers
 
       expect(response).to have_http_status(:ok)
       expect(menu_item.reload.price).to eq(BigDecimal("195"))
@@ -102,7 +127,7 @@ RSpec.describe "MenuItems API", type: :request do
           name: "",
           price: nil
         }
-      }
+      }, headers: headers
 
       expect(response).to have_http_status(:unprocessable_entity)
       expect(JSON.parse(response.body)["error"]).to eq("Validation failed")
@@ -112,7 +137,7 @@ RSpec.describe "MenuItems API", type: :request do
     it "returns 404 for unknown id" do
       put "/menu_items/999999", params: {
         menu_item: { name: "Updated" }
-      }
+      }, headers: headers
 
       expect(response).to have_http_status(:not_found)
       expect(JSON.parse(response.body)["error"]).to eq("Resource not found")
@@ -124,14 +149,14 @@ RSpec.describe "MenuItems API", type: :request do
       menu_item = restaurant.menu_items.create!(name: "Delete Me", price: 90, category: "drink", is_available: true)
 
       expect do
-        delete "/menu_items/#{menu_item.id}"
+        delete "/menu_items/#{menu_item.id}", headers: headers
       end.to change(MenuItem, :count).by(-1)
 
       expect(response).to have_http_status(:no_content)
     end
 
     it "returns 404 for unknown id" do
-      delete "/menu_items/999999"
+      delete "/menu_items/999999", headers: headers
 
       expect(response).to have_http_status(:not_found)
       expect(JSON.parse(response.body)["error"]).to eq("Resource not found")

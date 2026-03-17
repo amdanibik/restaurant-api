@@ -12,7 +12,7 @@ class RestaurantsController < ApplicationController
   end
 
   def index
-    render json: Restaurant.all
+    render json: paginated_payload(Restaurant.order(:id))
   end
 
   def show

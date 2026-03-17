@@ -1,0 +1,8 @@
+.git
+.gitignore
+log/*
+tmp/*
+storage/*
+vendor/bundle
+coverage
+spec/examples.txt

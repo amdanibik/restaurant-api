@@ -29,7 +29,15 @@ RSpec.describe "MenuItems API", type: :request do
       end.not_to change(MenuItem, :count)
 
       expect(response).to have_http_status(:unprocessable_entity)
+      expect(JSON.parse(response.body)["error"]).to eq("Validation failed")
       expect(JSON.parse(response.body)["errors"]).to be_present
+    end
+
+    it "returns 400 when menu item payload is missing" do
+      post "/restaurants/#{restaurant.id}/menu_items", params: { name: "Boat Noodles" }
+
+      expect(response).to have_http_status(:bad_request)
+      expect(JSON.parse(response.body)["error"]).to eq("Bad request")
     end
 
     it "returns 404 for unknown restaurant" do
@@ -38,7 +46,7 @@ RSpec.describe "MenuItems API", type: :request do
       }
 
       expect(response).to have_http_status(:not_found)
-      expect(JSON.parse(response.body)["error"]).to be_present
+      expect(JSON.parse(response.body)["error"]).to eq("Resource not found")
     end
   end
 
@@ -66,7 +74,7 @@ RSpec.describe "MenuItems API", type: :request do
       get "/restaurants/999999/menu_items"
 
       expect(response).to have_http_status(:not_found)
-      expect(JSON.parse(response.body)["error"]).to be_present
+      expect(JSON.parse(response.body)["error"]).to eq("Resource not found")
     end
   end
 
@@ -97,6 +105,7 @@ RSpec.describe "MenuItems API", type: :request do
       }
 
       expect(response).to have_http_status(:unprocessable_entity)
+      expect(JSON.parse(response.body)["error"]).to eq("Validation failed")
       expect(JSON.parse(response.body)["errors"]).to be_present
     end
 
@@ -106,7 +115,7 @@ RSpec.describe "MenuItems API", type: :request do
       }
 
       expect(response).to have_http_status(:not_found)
-      expect(JSON.parse(response.body)["error"]).to be_present
+      expect(JSON.parse(response.body)["error"]).to eq("Resource not found")
     end
   end
 
@@ -125,7 +134,7 @@ RSpec.describe "MenuItems API", type: :request do
       delete "/menu_items/999999"
 
       expect(response).to have_http_status(:not_found)
-      expect(JSON.parse(response.body)["error"]).to be_present
+      expect(JSON.parse(response.body)["error"]).to eq("Resource not found")
     end
   end
 end

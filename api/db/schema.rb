@@ -10,22 +10,22 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.0].define(version: 2026_03_16_045033) do
+ActiveRecord::Schema[7.0].define(version: 2026_03_17_103000) do
   create_table "menu_items", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
     t.bigint "restaurant_id", null: false
-    t.string "name"
+    t.string "name", null: false
     t.text "description"
-    t.decimal "price", precision: 10
-    t.string "category"
-    t.boolean "is_available"
+    t.decimal "price", precision: 10, null: false
+    t.string "category", null: false
+    t.boolean "is_available", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["restaurant_id"], name: "index_menu_items_on_restaurant_id"
   end
 
   create_table "restaurants", charset: "utf8mb4", collation: "utf8mb4_0900_ai_ci", force: :cascade do |t|
-    t.string "name"
-    t.string "address"
+    t.string "name", null: false
+    t.string "address", null: false
     t.string "phone"
     t.string "opening_hours"
     t.datetime "created_at", null: false

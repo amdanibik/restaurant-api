@@ -1,14 +1,18 @@
 class ApplicationController < ActionController::API
+  # Custom error untuk parameter query/path/body yang formatnya tidak valid.
   class BadRequestError < StandardError; end
 
+  # Semua endpoint membutuhkan API key lewat header X-API-Key.
   before_action :authenticate_api_key!
 
+  # Menjaga format error JSON tetap konsisten untuk seluruh controller.
   rescue_from ActionController::ParameterMissing, with: :render_bad_request
   rescue_from BadRequestError, with: :render_bad_request
   rescue_from ActiveRecord::RecordNotFound, with: :render_not_found
 
   private
 
+  # Validasi API key sederhana berbasis environment variable.
   def authenticate_api_key!
     provided_api_key = request.headers["X-API-Key"].to_s
     expected_api_key = ENV.fetch("API_KEY", "development-api-key")
@@ -28,18 +32,22 @@ class ApplicationController < ActionController::API
     ActiveSupport::SecurityUtils.secure_compare(provided_api_key, expected_api_key)
   end
 
+  # Format respons 400 untuk request yang tidak memenuhi kontrak API.
   def render_bad_request(error)
     render json: { error: "Bad request", details: [error.message] }, status: :bad_request
   end
 
+  # Format respons 404 untuk resource yang tidak ditemukan.
   def render_not_found(error)
     render json: { error: "Resource not found", details: [error.message] }, status: :not_found
   end
 
+  # Format respons 422 saat validasi model gagal.
   def render_validation_error(record)
     render json: { error: "Validation failed", errors: record.errors.full_messages }, status: :unprocessable_entity
   end
 
+  # Membungkus data list dengan metadata pagination.
   def paginated_payload(scope)
     page, per_page = pagination_params
     total_count = scope.count
@@ -55,6 +63,7 @@ class ApplicationController < ActionController::API
     }
   end
 
+  # Parameter pagination umum yang dipakai endpoint list.
   def pagination_params
     page = positive_integer_param(:page, 1)
     per_page = [positive_integer_param(:per_page, 10), 50].min
@@ -62,6 +71,7 @@ class ApplicationController < ActionController::API
     [page, per_page]
   end
 
+  # Memastikan page/per_page selalu bilangan bulat positif.
   def positive_integer_param(name, default)
     raw_value = params[name]
     return default if raw_value.blank?
